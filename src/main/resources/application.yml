@@ -1,21 +1,5 @@
 spring:
   application:
     name: micro-gateway
-#  cloud:
-#    gateway:
-#      routes:
-#        - id: micro-product
-#          uri: http://localhost:8081
-#          predicates:
-#            - Path=/api/products/**
-#        - id: micro-user
-#          uri: http://localhost:8082
-#          predicates:
-#            - Path=/api/users/**
-#        - id: micro-order
-#          uri: http://localhost:8083
-#          predicates:
-#            - Path=/api/orders/**, /api/cart/**
-
-server:
-  port: 8080
+  config:
+    import: optional:configserver:http://localhost:8888
