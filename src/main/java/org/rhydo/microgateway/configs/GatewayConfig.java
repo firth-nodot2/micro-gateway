@@ -14,6 +14,9 @@ public class GatewayConfig {
                 // micro-product router
                 .route("micro-product", r -> r
                         .path("/api/products/**")
+                        .filters(f -> f.circuitBreaker(config -> config
+                                .setName("ecomBreaker")
+                                .setFallbackUri("forward:/fallback/products")))
                         .uri("lb://MICRO-PRODUCT"))
 
                 // micro-user router
