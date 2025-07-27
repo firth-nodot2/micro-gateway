@@ -1,18 +1,35 @@
 package org.rhydo.microgateway.configs;
 
+import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
+import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import reactor.core.publisher.Mono;
+
+import java.util.Objects;
 
 @Configuration
 public class GatewayConfig {
 
     @Bean
-    public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
+    public RedisRateLimiter redisRateLimiter() {
+        return new RedisRateLimiter(1,1,1);
+    }
+
+    @Bean
+    public KeyResolver userKeyResolver() {
+        return exchange -> Mono.just(
+                Objects.requireNonNull(exchange.getRequest().getRemoteAddress()).getHostName());
+    }
+
+    @Bean
+    public RouteLocator customRouteLocator(RouteLocatorBuilder builder,
+                                           RedisRateLimiter redisRateLimiter,
+                                           KeyResolver userKeyResolver) {
         return builder.routes()
-                // micro-product router
                 .route("micro-product", r -> r
                         .path("/api/products/**")
                         .filters(f -> f
@@ -22,7 +39,12 @@ public class GatewayConfig {
                                 .circuitBreaker(config -> config
                                         .setName("ecomBreaker")
                                         .setFallbackUri("forward:/fallback/products"))
-                        ).uri("lb://MICRO-PRODUCT"))
+                                .requestRateLimiter(config -> config
+                                        .setRateLimiter(redisRateLimiter)
+                                        .setKeyResolver(userKeyResolver))
+                        )
+                        .uri("lb://MICRO-PRODUCT"))
+
 
                 // micro-user router
                 .route("micro-user", r -> r
